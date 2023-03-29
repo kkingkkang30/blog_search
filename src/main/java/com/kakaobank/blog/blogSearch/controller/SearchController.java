@@ -20,7 +20,7 @@ public class SearchController {
     @Autowired
     private SearchService searchService;
 
-    @GetMapping("/searchList")
+    @GetMapping("/search")
     public Map<String,Object> searchPost(@RequestBody PostSearchRequestDto postSearchRequestDto) {
 
 
