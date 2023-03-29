@@ -1,9 +1,13 @@
 package com.kakaobank.blog.blogSearch.service;
 
+import com.kakaobank.blog.blogSearch.domain.History;
+import com.kakaobank.blog.blogSearch.domain.HistoryRepository;
 import com.kakaobank.blog.blogSearch.dto.PagingDto;
 import com.kakaobank.blog.blogSearch.dto.PostSearchRequestDto;
 import com.kakaobank.blog.blogSearch.dto.PostSearchResponseDto;
+import lombok.RequiredArgsConstructor;
 import org.h2.util.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class SearchService {
 
     @Value("${kakao.url}")
@@ -25,6 +30,9 @@ public class SearchService {
     private String restApiKey;
 
     private RestTemplate restTemplate = new RestTemplate();
+
+    @Autowired
+    private final HistoryRepository historyRepository;
 
     public  Map<String,Object> searchPost(@RequestBody PostSearchRequestDto postSearchRequestDto) {
 
@@ -36,7 +44,7 @@ public class SearchService {
 
         HttpEntity<?> request = new HttpEntity<>(headers);
 
-        String restApiUrl = apiUrl + "/v2/search/blog?query=" +postSearchRequestDto.getQuery()
+        String restApiUrl = apiUrl + "/search/blog?query=" +postSearchRequestDto.getQuery()
                 + "&sort=" + postSearchRequestDto.getSort()
                 +"&page=" +postSearchRequestDto.getPage()
                 + "&size=" + postSearchRequestDto.getSize();
@@ -65,7 +73,16 @@ public class SearchService {
         searchResult.put("paging", paging);
         searchResult.put("postsList",postsList);
 
+
+        // 검색어 저장
+        History history = historyRepository.findByKeyword(postSearchRequestDto.getQuery()).orElse(new History(postSearchRequestDto.getQuery(), 0));
+        history.plusCount(history.getCount());
+        historyRepository.save(history);
+
         return searchResult;
     }
 
+    public List<History> topKeywordList(){
+        return historyRepository.findTop10ByOrderByCountDesc();
+    }
 }
